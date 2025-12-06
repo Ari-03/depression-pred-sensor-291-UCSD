@@ -336,14 +336,19 @@ def _(np):
 
         for user_id in sorted(seq_data.keys()):
             df = seq_data[user_id]
-            features = df[feature_cols].values
+            # Fill NaN values before aggregation
+            features = df[feature_cols].fillna(0).values
 
             if len(features) == 0:
                 # Handle empty sequences
                 stats = np.zeros(len(feature_cols) * 2)
             else:
-                mean_vals = np.mean(features, axis=0)
-                std_vals = np.std(features, axis=0)
+                # Use nanmean/nanstd to handle any remaining NaN values
+                mean_vals = np.nanmean(features, axis=0)
+                std_vals = np.nanstd(features, axis=0)
+                # Replace any NaN results with 0 (e.g., from empty slices)
+                mean_vals = np.nan_to_num(mean_vals, nan=0.0)
+                std_vals = np.nan_to_num(std_vals, nan=0.0)
                 stats = np.concatenate([mean_vals, std_vals])
 
             aggregated.append(stats)
@@ -480,6 +485,11 @@ def _(
     X_diary_scaled = scaler_diary.fit_transform(X_diary_raw)
     X_sensor_scaled = scaler_sensor.fit_transform(X_sensor_raw)
 
+    # Handle NaN values after scaling (can occur with zero-variance columns)
+    X_survey_scaled = np.nan_to_num(X_survey_scaled, nan=0.0, posinf=0.0, neginf=0.0)
+    X_diary_scaled = np.nan_to_num(X_diary_scaled, nan=0.0, posinf=0.0, neginf=0.0)
+    X_sensor_scaled = np.nan_to_num(X_sensor_scaled, nan=0.0, posinf=0.0, neginf=0.0)
+
     # Apply UMAP to sensor features if enabled
     if umap_enabled.value:
         umap_model = umap.UMAP(
@@ -597,11 +607,15 @@ def _(mo):
     alpha_slider = mo.ui.slider(
         start=-4, stop=2, value=0, step=0.5, label="Regularization (log10 alpha)"
     )
-
-    mo.md(
-        f"**Regularization Strength**: alpha = 10^{alpha_slider.value} = {10**alpha_slider.value:.4f}"
-    )
     return (alpha_slider,)
+
+
+@app.cell
+def _(alpha_slider, mo):
+    mo.md(f"""
+    **Regularization Strength**: alpha = 10^{alpha_slider.value} = {10**alpha_slider.value:.4f}
+    """)
+    return
 
 
 @app.cell
@@ -1138,15 +1152,6 @@ def _(OUTPUT_DIR, os, results_df):
     output_path = os.path.join(OUTPUT_DIR, "final_model_results.csv")
     results_df.to_csv(output_path, index=False)
     print(f"Results saved to: {output_path}")
-    return
-
-
-@app.cell
-def _(mo):
-    mo.md(r"""
-    ---
-    *DSC 291 - Mobile Sensing for Health | Fall 2025 | UC San Diego*
-    """)
     return
 
 
