@@ -37,3 +37,39 @@ Our analysis is a retrospective comparison of three machine learning models to i
         3.  **Combined Model:** Static + Sleep + Sensor Features
 
 4. **Evaluation:**
+
+---
+
+## Running the Final Model Notebook
+
+The final analysis is implemented as an interactive [marimo](https://marimo.io) notebook located at `src/notebooks/final_model_notebook.py`.
+
+### Prerequisites
+
+- Python >= 3.10
+- Install dependencies using [uv](https://docs.astral.sh/uv/):
+
+```bash
+uv sync
+```
+
+### Running the Notebook
+
+To launch the interactive notebook:
+
+```bash
+uv run marimo run src/notebooks/final_model_notebook.py
+```
+
+To edit the notebook in the marimo editor:
+
+```bash
+uv run marimo edit src/notebooks/final_model_notebook.py
+```
+
+The notebook provides interactive controls for:
+- Exploring the dataset (surveys, sleep diaries, sensor data)
+- Configuring UMAP dimensionality reduction parameters
+- Adjusting regularization strength for Ridge/Lasso models
+- Visualizing predicted vs actual scores
+- Viewing patient-level time series trends
