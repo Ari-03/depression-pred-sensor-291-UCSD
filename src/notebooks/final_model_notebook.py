@@ -22,7 +22,6 @@ app = marimo.App(width="medium")
 @app.cell
 def _():
     import marimo as mo
-
     return (mo,)
 
 
@@ -413,9 +412,8 @@ def _(SENSOR_FEATURE_COLS, df_sensor, mo, pd):
                 mo.md(f"""
     **Data Quality Issues Found ({len(problematic_features)} sensor features with issues):**
 
-    - `lf`, `hf` have values up to **1e+46** (clearly corrupted/erroneous)
+    - `lf`, `hf` have values up to **1e+46**
     - `steps`, `calories`, `distance` have **~55% missing** values
-    - Consider **excluding these features** for better model performance
 
     These issues are highlighted in the Feature Selection section below.
             """),
@@ -541,7 +539,7 @@ def _(df_survey, mo):
     | ISI    | {isi_none} ({isi_none / n_participants * 100:.0f}%) | {n_participants - isi_none - isi_clinical} ({(n_participants - isi_none - isi_clinical) / n_participants * 100:.0f}%) | **{isi_clinical} ({isi_clinical / n_participants * 100:.0f}%)** |
 
     **Impact:** The vast majority of participants have minimal/no symptoms. 
-    With so few clinical cases, the model lacks examples to learn from and tends to predict "average" (low) scores for everyone.
+    With so few clinical cases, the model might lacks examples to learn from and tends to predict "average" (low) scores for everyone.
         """),
         kind="warn",
     )
@@ -609,7 +607,6 @@ def _(np):
         for user_id, group in df.groupby(id_col):
             seq_data[user_id] = group[feature_cols].copy()
         return seq_data
-
     return aggregate_sequences, prepare_sequence_data
 
 
@@ -803,7 +800,6 @@ def _(
         selected_diary_features,
         selected_sensor_features,
         selected_survey_features,
-        total_model_features,
     )
 
 
@@ -1055,21 +1051,35 @@ def _(mo):
 def _(
     TARGET_LABELS,
     X_all,
+    X_sensor_reduced,
     go,
     np,
     pd,
     selected_diary_features,
     selected_sensor_features,
     selected_survey_features,
+    umap_enabled,
     y_all,
 ):
     # Build feature names for the combined feature matrix
+    # Note: When UMAP is enabled, sensor features are reduced to UMAP components
+    if (
+        umap_enabled.value
+        and X_sensor_reduced.shape[1] < len(selected_sensor_features) * 2
+    ):
+        # UMAP was applied - use generic component names
+        _sensor_feature_names = [f"UMAP_{i}" for i in range(X_sensor_reduced.shape[1])]
+    else:
+        # No UMAP or not enough features - use original names
+        _sensor_feature_names = [f"{f}_mean" for f in selected_sensor_features] + [
+            f"{f}_std" for f in selected_sensor_features
+        ]
+
     _feature_names = (
         list(selected_survey_features)
         + [f"{f}_mean" for f in selected_diary_features]
         + [f"{f}_std" for f in selected_diary_features]
-        + [f"{f}_mean" for f in selected_sensor_features]
-        + [f"{f}_std" for f in selected_sensor_features]
+        + _sensor_feature_names
     )
 
     # Compute correlations if we have features
